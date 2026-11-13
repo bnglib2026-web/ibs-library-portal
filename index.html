@@ -574,7 +574,7 @@
 
   <!-- Persistent Fixed Footer Right Below Entry/Exit Cards -->
   <footer class="shrink-0 sticky bottom-0 z-20 bg-[#e4e9f0]/95 backdrop-blur-md border-t border-white/60 py-2.5 px-6 text-center text-sm font-extrabold text-slate-800 tracking-wide">
-    Designed by Ayushi Gupta and developed by Mohith Yadav S.
+    Designed by Ayushi Gupta • Developed by Mohith Yadav S
   </footer>
 
   <script type="module">
@@ -899,9 +899,15 @@
 
     // ==================== MILESTONE GAMIFICATION CHECK ====================
     window.closeMilestoneModal = function() {
-      document.getElementById('milestoneModal').classList.add('hidden');
+      const modal = document.getElementById('milestoneModal');
+      if (modal) modal.classList.add('hidden');
       clearTimeout(milestoneTimer);
+      document.removeEventListener('click', handleGlobalMilestoneDismiss, true);
     };
+
+    function handleGlobalMilestoneDismiss() {
+      closeMilestoneModal();
+    }
 
     function launchConfetti() {
       const container = document.getElementById('confettiContainer');
@@ -990,6 +996,11 @@
           bar.style.width = '100%';
           modal.classList.remove('hidden');
           launchConfetti();
+          setTimeout(() => {
+            if (!modal.classList.contains('hidden')) {
+              document.addEventListener('click', handleGlobalMilestoneDismiss, true);
+            }
+          }, 150);
 
           requestAnimationFrame(() => {
             requestAnimationFrame(() => {
