@@ -43,9 +43,16 @@
       border: 1px solid rgba(255, 255, 255, 0.55);
       transition: transform 0.26s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.26s cubic-bezier(0.22, 1, 0.36, 1);
     }
+    .neo-kpi {
+      cursor: pointer;
+    }
     .neo-kpi:hover {
-      transform: translateY(-3px);
-      box-shadow: 12px 12px 22px var(--shadow-dark), -10px -10px 20px var(--shadow-light);
+      transform: translateY(-4px);
+      box-shadow: 12px 12px 24px var(--shadow-dark), -10px -10px 22px var(--shadow-light);
+      border-color: rgba(30, 58, 138, 0.35);
+    }
+    .neo-kpi:active {
+      transform: translateY(-1px) scale(0.99);
     }
     .neo-sm {
       background: var(--bg-neo);
@@ -132,6 +139,11 @@
       color: #ffffff;
       box-shadow: 5px 5px 12px var(--shadow-dark), -4px -4px 10px var(--shadow-light);
     }
+    .neo-cta-rose {
+      background: linear-gradient(145deg, #e11d48, #f43f5e);
+      color: #ffffff;
+      box-shadow: 5px 5px 12px var(--shadow-dark), -4px -4px 10px var(--shadow-light);
+    }
 
     /* Motion Animations */
     @keyframes panelFadeUp {
@@ -177,6 +189,106 @@
   <!-- Ambient Background Orbs -->
   <div class="ambient-orb w-96 h-96 bg-blue-300/35 -top-20 right-10"></div>
   <div class="ambient-orb w-80 h-80 bg-indigo-200/40 bottom-10 left-5" style="animation-delay: -6s;"></div>
+
+  <!-- ==================== KPI DRILL-DOWN MODAL ==================== -->
+  <div id="drilldownModal" onclick="if(event.target===this) closeDrilldown()" class="fixed inset-0 z-50 hidden bg-slate-950/60 backdrop-blur-sm overflow-y-auto p-4 sm:p-8 flex items-center justify-center">
+    <div class="neo-flat rounded-3xl max-w-4xl w-full p-6 sm:p-8 shadow-2xl animate-panel my-auto">
+      <div class="flex items-start justify-between gap-4 pb-4 mb-5 border-b border-slate-300/70">
+        <div>
+          <span id="ddEyebrow" class="neo-inset text-[10px] font-extrabold uppercase tracking-widest text-blue-900 px-3 py-1 rounded-lg">KPI Visual Breakdown</span>
+          <h3 id="ddTitle" class="text-xl sm:text-2xl font-extrabold text-slate-900 mt-2">-</h3>
+          <p id="ddSubtitle" class="text-xs text-slate-500 mt-0.5">-</p>
+        </div>
+        <button onclick="closeDrilldown()" class="neo-btn px-4 py-2 rounded-xl text-xs font-extrabold text-slate-700">✕ Close</button>
+      </div>
+
+      <!-- Visual Chart + Highlight Metrics Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-5 gap-5 mb-6">
+        <div class="md:col-span-3 neo-inset p-4 rounded-2xl h-56 flex items-center justify-center">
+          <canvas id="drilldownChart"></canvas>
+        </div>
+        <div id="ddStatsColumn" class="md:col-span-2 flex flex-col justify-between gap-3"></div>
+      </div>
+
+      <!-- Detailed Records Table -->
+      <div class="text-xs font-extrabold uppercase tracking-wide text-slate-500 mb-2" id="ddTableHeading">Detailed Records</div>
+      <div class="neo-inset overflow-x-auto max-h-64 rounded-2xl p-1">
+        <table class="w-full text-left border-collapse text-xs">
+          <thead id="ddTableHead" class="bg-[#dce3ed] text-slate-700 uppercase font-extrabold sticky top-0"></thead>
+          <tbody id="ddTableBody" class="divide-y divide-slate-300/50"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MANUAL TICKET OVERRIDE / EDIT MODAL ==================== -->
+  <div id="editTicketModal" onclick="if(event.target===this) closeEditTicketModal()" class="fixed inset-0 z-50 hidden bg-slate-950/60 backdrop-blur-sm overflow-y-auto p-4 flex items-center justify-center">
+    <div class="neo-flat rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl animate-panel my-auto">
+      <div class="flex items-center justify-between pb-4 mb-5 border-b border-slate-300/70">
+        <div>
+          <span class="neo-inset text-[10px] font-extrabold uppercase tracking-widest text-indigo-800 px-3 py-1 rounded-lg">Admin Override</span>
+          <h3 class="text-xl font-extrabold text-slate-900 mt-1.5">Edit / Correct Ticket Entry</h3>
+        </div>
+        <button onclick="closeEditTicketModal()" class="neo-btn px-3.5 py-1.5 rounded-xl text-xs font-extrabold text-slate-700">✕</button>
+      </div>
+
+      <form id="editTicketForm" class="space-y-4">
+        <input type="hidden" id="editTicketId" />
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[11px] font-extrabold uppercase text-slate-600 mb-1">Category</label>
+            <select id="editTicketType" class="neo-inset w-full px-3.5 py-2.5 rounded-xl text-xs font-extrabold">
+              <option value="STUDENT">STUDENT</option>
+              <option value="FACULTY">FACULTY</option>
+              <option value="GENERAL">GENERAL</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-extrabold uppercase text-slate-600 mb-1">Status</label>
+            <select id="editTicketStatus" class="neo-inset w-full px-3.5 py-2.5 rounded-xl text-xs font-extrabold">
+              <option value="OPEN">OPEN (Inside)</option>
+              <option value="CLOSED">CLOSED (Exited)</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-extrabold uppercase text-slate-600 mb-1">Enrollment No. / Phone / ID</label>
+          <input type="text" id="editTicketIdentifier" required
+            class="neo-inset w-full px-3.5 py-2.5 rounded-xl text-xs font-mono font-bold uppercase" />
+          <p id="editTicketLookupNote" class="text-[11px] text-slate-500 mt-1">Changing enrollment number auto-fills from Student Master if matched.</p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div class="sm:col-span-2">
+            <label class="block text-[11px] font-extrabold uppercase text-slate-600 mb-1">Visitor / Student Name *</label>
+            <input type="text" id="editTicketName" required class="neo-inset w-full px-3.5 py-2.5 rounded-xl text-xs font-bold" />
+          </div>
+          <div>
+            <label class="block text-[11px] font-extrabold uppercase text-slate-600 mb-1">Program / Locality</label>
+            <input type="text" id="editTicketMeta" required class="neo-inset w-full px-3.5 py-2.5 rounded-xl text-xs font-bold" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[11px] font-extrabold uppercase text-slate-600 mb-1">Check-In Time *</label>
+            <input type="datetime-local" id="editTicketCheckIn" required class="neo-inset w-full px-3 py-2 rounded-xl font-mono text-xs font-bold" />
+          </div>
+          <div>
+            <label class="block text-[11px] font-extrabold uppercase text-slate-600 mb-1">Check-Out Time</label>
+            <input type="datetime-local" id="editTicketCheckOut" class="neo-inset w-full px-3 py-2 rounded-xl font-mono text-xs font-bold" />
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-300/60">
+          <button type="button" onclick="closeEditTicketModal()" class="neo-btn px-4 py-2.5 rounded-xl text-xs font-extrabold text-slate-700">Cancel</button>
+          <button type="submit" class="neo-cta-blue cta-sheen px-5 py-2.5 rounded-xl text-xs font-extrabold">Save Corrections ✓</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <!-- Printable Document Overlay (Used for NAAC/IQAC Audit Summary & Student Attendance Certificate) -->
   <div id="printOverlay" class="fixed inset-0 z-50 hidden bg-slate-950/75 backdrop-blur-sm overflow-y-auto p-4 sm:p-8 flex items-start justify-center">
@@ -303,30 +415,49 @@
         </button>
       </div>
 
-      <!-- 5 KPI Cards -->
+      <!-- 5 Interactive Drill-Down KPI Cards -->
       <div class="grid grid-cols-2 lg:grid-cols-5 gap-5">
-        <div class="neo-flat neo-kpi p-5 rounded-3xl">
-          <div class="text-xs font-extrabold uppercase text-slate-500">Students Visited</div>
+        <div onclick="openKpiDrilldown('STUDENTS')" class="neo-flat neo-kpi p-5 rounded-3xl group">
+          <div class="flex items-center justify-between">
+            <div class="text-xs font-extrabold uppercase text-slate-500">Students Visited</div>
+            <span class="text-[10px] font-extrabold text-blue-700 opacity-75 group-hover:opacity-100">Inspect →</span>
+          </div>
           <div id="kpiStudents" class="text-3xl font-extrabold text-blue-900 mt-1.5">0</div>
           <div id="kpiStudentsSub" class="text-xs font-semibold text-slate-500 mt-1">Unique: 0</div>
         </div>
-        <div class="neo-flat neo-kpi p-5 rounded-3xl">
-          <div class="text-xs font-extrabold uppercase text-slate-500">Faculty Visited</div>
+
+        <div onclick="openKpiDrilldown('FACULTY')" class="neo-flat neo-kpi p-5 rounded-3xl group">
+          <div class="flex items-center justify-between">
+            <div class="text-xs font-extrabold uppercase text-slate-500">Faculty Visited</div>
+            <span class="text-[10px] font-extrabold text-indigo-700 opacity-75 group-hover:opacity-100">Inspect →</span>
+          </div>
           <div id="kpiFaculty" class="text-3xl font-extrabold text-indigo-700 mt-1.5">0</div>
           <div id="kpiFacultySub" class="text-xs font-semibold text-slate-500 mt-1">Unique: 0</div>
         </div>
-        <div class="neo-flat neo-kpi p-5 rounded-3xl">
-          <div class="text-xs font-extrabold uppercase text-slate-500">General Visitors</div>
+
+        <div onclick="openKpiDrilldown('GENERAL')" class="neo-flat neo-kpi p-5 rounded-3xl group">
+          <div class="flex items-center justify-between">
+            <div class="text-xs font-extrabold uppercase text-slate-500">General Visitors</div>
+            <span class="text-[10px] font-extrabold text-amber-700 opacity-75 group-hover:opacity-100">Inspect →</span>
+          </div>
           <div id="kpiGeneral" class="text-3xl font-extrabold text-amber-600 mt-1.5">0</div>
-          <div class="text-xs font-semibold text-slate-500 mt-1">External / Guests</div>
+          <div id="kpiGeneralSub" class="text-xs font-semibold text-slate-500 mt-1">External / Guests</div>
         </div>
-        <div class="neo-flat neo-kpi p-5 rounded-3xl border-2 border-emerald-400/50">
-          <div class="text-xs font-extrabold uppercase text-emerald-800">Currently Inside</div>
+
+        <div onclick="openKpiDrilldown('INSIDE')" class="neo-flat neo-kpi p-5 rounded-3xl border-2 border-emerald-400/50 group">
+          <div class="flex items-center justify-between">
+            <div class="text-xs font-extrabold uppercase text-emerald-800">Currently Inside</div>
+            <span class="text-[10px] font-extrabold text-emerald-800 opacity-75 group-hover:opacity-100">Live List →</span>
+          </div>
           <div id="kpiLiveInside" class="text-3xl font-extrabold text-emerald-700 mt-1.5">0</div>
           <div class="text-xs font-semibold text-emerald-700 mt-1">Live occupancy</div>
         </div>
-        <div class="neo-flat neo-kpi p-5 rounded-3xl col-span-2 lg:col-span-1">
-          <div class="text-xs font-extrabold uppercase text-slate-500">Avg. Student Stay</div>
+
+        <div onclick="openKpiDrilldown('AVG_STAY')" class="neo-flat neo-kpi p-5 rounded-3xl col-span-2 lg:col-span-1 group">
+          <div class="flex items-center justify-between">
+            <div class="text-xs font-extrabold uppercase text-slate-500">Avg. Student Stay</div>
+            <span class="text-[10px] font-extrabold text-slate-700 opacity-75 group-hover:opacity-100">Breakdown →</span>
+          </div>
           <div id="kpiAvgStay" class="text-3xl font-extrabold text-slate-900 mt-1.5">0m</div>
           <div class="text-xs font-semibold text-slate-500 mt-1">Completed sessions</div>
         </div>
@@ -361,21 +492,26 @@
         </div>
       </div>
 
-      <!-- Charts Row 2: Day-of-Week & Exam-Season Monthly Trend Charts -->
+      <!-- Charts Row 2: Daily Footfall Trend + Monthly & Exam-Season Trend -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-7">
+        <!-- Daily Footfall Trend Chart -->
         <div class="neo-flat p-6 rounded-3xl">
           <div class="flex items-center justify-between mb-4">
             <div>
-              <h3 class="text-base font-extrabold text-slate-900">📅 Day-of-Week Footfall Pattern</h3>
-              <p class="text-xs text-slate-500">Monday–Sunday traffic distribution for staff shift planning</p>
+              <h3 class="text-base font-extrabold text-slate-900">📆 Daily Footfall Trend</h3>
+              <p class="text-xs text-slate-500">Day-by-day check-ins & unique student count</p>
             </div>
-            <span id="busiestDayBadge" class="neo-inset text-xs font-extrabold px-3 py-1.5 rounded-xl text-indigo-800">Busiest: --</span>
+            <select id="dailyWindowSelect" onchange="renderDailyTrendChart(allLogs)" class="neo-inset text-xs font-extrabold px-3 py-1.5 rounded-xl text-blue-900 cursor-pointer">
+              <option value="14" selected>Last 14 Days</option>
+              <option value="30">Last 30 Days</option>
+            </select>
           </div>
           <div class="h-64 neo-inset p-3 rounded-2xl">
-            <canvas id="dayOfWeekChart"></canvas>
+            <canvas id="dailyTrendChart"></canvas>
           </div>
         </div>
 
+        <!-- Monthly & Exam-Season Trend -->
         <div class="neo-flat p-6 rounded-3xl">
           <div class="flex items-center justify-between mb-4">
             <div>
@@ -390,8 +526,21 @@
         </div>
       </div>
 
-      <!-- Leaderboards Row: Top 3 Highest Visitors & Top 3 Longest Stays -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-7">
+      <!-- Charts Row 3: Day-of-Week Pattern + Leaderboards -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-7">
+        <div class="neo-flat p-6 rounded-3xl">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="text-base font-extrabold text-slate-900">📅 Day-of-Week Pattern</h3>
+              <p class="text-xs text-slate-500">Mon–Sun shift planning</p>
+            </div>
+            <span id="busiestDayBadge" class="neo-inset text-xs font-extrabold px-2.5 py-1 rounded-xl text-indigo-800">Busiest: --</span>
+          </div>
+          <div class="h-56 neo-inset p-3 rounded-2xl">
+            <canvas id="dayOfWeekChart"></canvas>
+          </div>
+        </div>
+
         <div class="neo-flat p-6 rounded-3xl">
           <h3 class="text-base font-extrabold text-slate-900 mb-1">🏆 Top 3 Most Frequent Visitors</h3>
           <p class="text-xs text-slate-500 mb-4">Students with highest library check-in count</p>
@@ -409,12 +558,12 @@
         </div>
       </div>
 
-      <!-- Detailed Attendance Register with Audit Trail Filter & CSV Export -->
+      <!-- Detailed Attendance Register with Manual Ticket Override & Audit Trail -->
       <div class="neo-flat p-6 rounded-3xl">
         <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
           <div>
-            <h3 class="text-base font-extrabold text-slate-900">Live Digital Entry / Exit Register & Time Audit Trail</h3>
-            <p class="text-xs text-slate-500">Flags manually adjusted timestamps and auto-closed sessions</p>
+            <h3 class="text-base font-extrabold text-slate-900">Live Digital Entry / Exit Register & Manual Ticket Override</h3>
+            <p class="text-xs text-slate-500">Edit erroneous enrollment numbers/times, force-close open tickets, or delete invalid entries</p>
           </div>
           <div class="flex flex-wrap items-center gap-3">
             <select id="logTypeFilter" onchange="recomputeAnalytics()" class="neo-inset px-3.5 py-2 rounded-xl text-xs font-extrabold">
@@ -422,7 +571,7 @@
               <option value="STUDENT">Students Only</option>
               <option value="FACULTY">Faculty Only</option>
               <option value="GENERAL">General Visitors</option>
-              <option value="EDITED_ONLY">🕒 Manual Time Edits Only</option>
+              <option value="EDITED_ONLY">🕒 Manual Time / Admin Edits Only</option>
             </select>
             <button onclick="exportLogsCSV()" class="neo-cta-green cta-sheen px-4 py-2 rounded-xl text-xs font-extrabold">
               ⬇ Download Excel / CSV Report
@@ -432,7 +581,7 @@
 
         <div class="neo-inset overflow-x-auto max-h-96 rounded-2xl p-1">
           <table class="w-full text-left border-collapse text-xs">
-            <thead class="bg-[#dce3ed] text-slate-700 uppercase font-extrabold sticky top-0">
+            <thead class="bg-[#dce3ed] text-slate-700 uppercase font-extrabold sticky top-0 z-10">
               <tr>
                 <th class="p-3">Category</th>
                 <th class="p-3">ID / Phone</th>
@@ -442,6 +591,7 @@
                 <th class="p-3">Check-Out</th>
                 <th class="p-3">Stay</th>
                 <th class="p-3">Audit / Status</th>
+                <th class="p-3 text-right">Override Actions</th>
               </tr>
             </thead>
             <tbody id="registerTableBody" class="divide-y divide-slate-300/50"></tbody>
@@ -543,22 +693,33 @@
         <div class="neo-flat p-6 rounded-3xl space-y-4">
           <h3 class="text-base font-extrabold text-slate-900">📢 Front Desk Live Announcement</h3>
           <p class="text-xs text-slate-500">Updates the scrolling notice ticker on the Front Desk screen immediately.</p>
-          <textarea id="settingAnnouncement" rows="3" class="neo-inset w-full p-3.5 rounded-2xl text-sm font-medium"></textarea>
+          <textarea id="settingAnnouncement" rows="4" class="neo-inset w-full p-3.5 rounded-2xl text-sm font-medium"></textarea>
           <button onclick="savePortalSettings()" class="neo-cta-blue cta-sheen px-5 py-2.5 rounded-2xl text-xs font-extrabold">
             Publish Announcement Live
           </button>
         </div>
 
         <div class="neo-flat p-6 rounded-3xl space-y-4">
-          <h3 class="text-base font-extrabold text-slate-900">⏰ Auto-Closing Rule, Toggles & Security PIN</h3>
+          <h3 class="text-base font-extrabold text-slate-900">⏰ Kiosk Timers, Toggles & Security PIN</h3>
 
           <div class="neo-inset flex items-center justify-between p-3.5 rounded-2xl">
             <div>
               <div class="font-extrabold text-sm text-slate-900">Official Library Closing Hour</div>
-              <div class="text-xs text-slate-500">Auto-closes unclosed previous-day tickets at this exact time</div>
+              <div class="text-xs text-slate-500">Auto-closes unclosed previous-day tickets at this time</div>
             </div>
             <div class="flex items-center gap-2">
               <input type="time" id="settingClosingHour" value="20:30" class="neo-sm px-3 py-1.5 rounded-xl text-xs font-mono font-extrabold text-blue-900" />
+              <button onclick="savePortalSettings()" class="neo-cta-blue px-3 py-1.5 rounded-xl text-xs font-extrabold">Save</button>
+            </div>
+          </div>
+
+          <div class="neo-inset flex items-center justify-between p-3.5 rounded-2xl">
+            <div>
+              <div class="font-extrabold text-sm text-slate-900">Milestone Pop-up Auto-Close (Seconds)</div>
+              <div class="text-xs text-slate-500">Controls how long student milestone badges stay on screen</div>
+            </div>
+            <div class="flex items-center gap-2">
+              <input type="number" id="settingMilestoneSeconds" min="2" max="60" value="5" class="neo-sm w-20 px-3 py-1.5 rounded-xl text-xs font-mono font-extrabold text-blue-900 text-center" />
               <button onclick="savePortalSettings()" class="neo-cta-blue px-3 py-1.5 rounded-xl text-xs font-extrabold">Save</button>
             </div>
           </div>
@@ -716,9 +877,12 @@
     let allStudents = [];
     let allFaculty = [];
     let activeLookupRecord = null;
+    let activeDrilldownCategory = null;
     let peakChartInstance = null;
+    let dailyChartInstance = null;
     let dayChartInstance = null;
     let monthChartInstance = null;
+    let drilldownChartInstance = null;
 
     function showToast(msg, type = 'success') {
       const el = document.getElementById('toast');
@@ -743,6 +907,11 @@
       return d.toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true });
     }
 
+    function toLocalDatetimeValue(date = new Date()) {
+      const pad = n => String(n).padStart(2, '0');
+      return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    }
+
     function format12Hour(hhmm) {
       const [h, m] = (hhmm || '20:30').split(':').map(Number);
       const ampm = h >= 12 ? 'PM' : 'AM';
@@ -750,7 +919,6 @@
       return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
     }
 
-    // Smooth numeric counter roll-up animation
     function animateValue(elId, targetNum) {
       const el = document.getElementById(elId);
       if (!el) return;
@@ -779,6 +947,7 @@
           announcement: 'Welcome to Shri N. J. Yasaswi Knowledge Center. Please maintain silence inside the reading halls.',
           requestsEnabled: true,
           closingHour: '20:30',
+          milestoneSeconds: 5,
           adminPin: '2026'
         });
       }
@@ -791,6 +960,7 @@
           document.getElementById('settingAnnouncement').value = data.announcement || '';
           document.getElementById('settingRequestsEnabled').checked = data.requestsEnabled !== false;
           document.getElementById('settingClosingHour').value = officialClosingHour;
+          document.getElementById('settingMilestoneSeconds').value = data.milestoneSeconds || 5;
           checkStaleTickets(true);
         }
       });
@@ -892,6 +1062,7 @@
       checkStaleTickets(true);
       recomputeAnalytics();
       if (activeLookupRecord) runStudentLookup();
+      if (activeDrilldownCategory) openKpiDrilldown(activeDrilldownCategory);
     });
 
     function getFilteredLogsByPeriod() {
@@ -936,14 +1107,15 @@
 
       renderPeakTimeChart(filtered);
       renderBatchHeatmap(stuLogs);
-      renderDayOfWeekChart(filtered);
+      renderDailyTrendChart(allLogs);
       renderMonthlyTrendChart(allLogs);
+      renderDayOfWeekChart(filtered);
       renderLeaderboards(stuLogs);
       renderRegisterTable(filtered);
     };
 
     function renderPeakTimeChart(logs) {
-      const hours = Array.from({ length: 14 }, (_, i) => i + 8); // 8 AM - 9 PM
+      const hours = Array.from({ length: 14 }, (_, i) => i + 8);
       const counts = hours.map(h => logs.filter(l => new Date(l.checkIn).getHours() === h).length);
       const labels = hours.map(h => `${h > 12 ? h - 12 : h} ${h >= 12 ? 'PM' : 'AM'}`);
 
@@ -978,11 +1150,77 @@
       });
     }
 
+    // ==================== DAILY FOOTFALL TREND CHART ====================
+    window.renderDailyTrendChart = function(logs) {
+      const daysCount = parseInt(document.getElementById('dailyWindowSelect').value || '14', 10);
+      const now = new Date();
+      const days = [];
+      for (let i = daysCount - 1; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+        const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+        days.push({
+          key,
+          label: d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }),
+          totalVisits: 0,
+          uniqueSet: new Set()
+        });
+      }
+
+      logs.forEach(l => {
+        const d = new Date(l.checkIn);
+        const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+        const bucket = days.find(x => x.key === key);
+        if (bucket) {
+          bucket.totalVisits += 1;
+          bucket.uniqueSet.add(l.identifier || l.name);
+        }
+      });
+
+      const ctx = document.getElementById('dailyTrendChart').getContext('2d');
+      if (dailyChartInstance) dailyChartInstance.destroy();
+      dailyChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: days.map(d => d.label),
+          datasets: [
+            {
+              label: 'Total Daily Visits',
+              data: days.map(d => d.totalVisits),
+              borderColor: '#1e3a8a',
+              backgroundColor: 'rgba(30, 58, 138, 0.15)',
+              fill: true,
+              tension: 0.35,
+              borderWidth: 3,
+              pointRadius: 3
+            },
+            {
+              label: 'Unique Visitors',
+              data: days.map(d => d.uniqueSet.size),
+              borderColor: '#059669',
+              backgroundColor: 'rgba(5, 150, 105, 0.10)',
+              fill: true,
+              tension: 0.35,
+              borderWidth: 2.5,
+              pointRadius: 3
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: { beginAtZero: true, ticks: { precision: 0 } },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+    };
+
     function renderDayOfWeekChart(logs) {
       const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
       const dayCounts = [0, 0, 0, 0, 0, 0, 0];
       logs.forEach(l => {
-        const jsDay = new Date(l.checkIn).getDay(); // 0=Sun..6=Sat
+        const jsDay = new Date(l.checkIn).getDay();
         const idx = jsDay === 0 ? 6 : jsDay - 1;
         dayCounts[idx] += 1;
       });
@@ -1144,38 +1382,231 @@
 
       document.getElementById('topVisitorsList').innerHTML = top3Visits.length
         ? top3Visits.map((s, i) => `
-          <div class="neo-inset flex items-center justify-between p-3.5 rounded-2xl">
-            <div class="flex items-center gap-3">
-              <span class="text-xl">${medals[i]}</span>
+          <div class="neo-inset flex items-center justify-between p-3 rounded-2xl">
+            <div class="flex items-center gap-2.5">
+              <span class="text-lg">${medals[i]}</span>
               <div>
-                <div class="font-extrabold text-sm text-slate-900">${s.name}</div>
-                <div class="text-xs text-slate-600 font-mono">${s.enrol} • ${s.program}</div>
+                <div class="font-extrabold text-xs sm:text-sm text-slate-900">${s.name}</div>
+                <div class="text-[11px] text-slate-600 font-mono">${s.enrol} • ${s.program}</div>
               </div>
             </div>
-            <span class="px-3 py-1 rounded-xl bg-blue-900 text-white text-xs font-extrabold shadow-sm">${s.count} visits</span>
+            <span class="px-2.5 py-1 rounded-xl bg-blue-900 text-white text-xs font-extrabold shadow-sm">${s.count} visits</span>
           </div>`).join('')
         : '<div class="text-sm text-slate-400 py-4 text-center">No records yet.</div>';
 
       document.getElementById('topDurationList').innerHTML = top3Mins.length
         ? top3Mins.map((s, i) => `
-          <div class="neo-inset flex items-center justify-between p-3.5 rounded-2xl">
-            <div class="flex items-center gap-3">
-              <span class="text-xl">${medals[i]}</span>
+          <div class="neo-inset flex items-center justify-between p-3 rounded-2xl">
+            <div class="flex items-center gap-2.5">
+              <span class="text-lg">${medals[i]}</span>
               <div>
-                <div class="font-extrabold text-sm text-slate-900">${s.name}</div>
-                <div class="text-xs text-slate-600 font-mono">${s.enrol} • ${s.program}</div>
+                <div class="font-extrabold text-xs sm:text-sm text-slate-900">${s.name}</div>
+                <div class="text-[11px] text-slate-600 font-mono">${s.enrol} • ${s.program}</div>
               </div>
             </div>
-            <span class="px-3 py-1 rounded-xl bg-emerald-700 text-white text-xs font-extrabold shadow-sm">${formatMins(s.mins)}</span>
+            <span class="px-2.5 py-1 rounded-xl bg-emerald-700 text-white text-xs font-extrabold shadow-sm">${formatMins(s.mins)}</span>
           </div>`).join('')
         : '<div class="text-sm text-slate-400 py-4 text-center">No completed sessions yet.</div>';
     }
 
+    // ==================== KPI BANNER DRILL-DOWN MODAL ====================
+    window.closeDrilldown = function() {
+      activeDrilldownCategory = null;
+      document.getElementById('drilldownModal').classList.add('hidden');
+    };
+
+    window.openKpiDrilldown = function(category) {
+      activeDrilldownCategory = category;
+      const filtered = window._periodFilteredLogs || allLogs;
+      const periodLabel = document.getElementById('periodSelect').selectedOptions[0].text;
+      const modal = document.getElementById('drilldownModal');
+      const statsCol = document.getElementById('ddStatsColumn');
+      const thead = document.getElementById('ddTableHead');
+      const tbody = document.getElementById('ddTableBody');
+
+      if (drilldownChartInstance) drilldownChartInstance.destroy();
+      const ctx = document.getElementById('drilldownChart').getContext('2d');
+
+      if (category === 'STUDENTS') {
+        const stu = filtered.filter(x => x.visitorType === 'STUDENT');
+        const unique = new Set(stu.map(x => x.identifier)).size;
+        const repeatCount = stu.length - unique;
+        const progCounts = {};
+        stu.forEach(s => { progCounts[s.meta || 'MBA'] = (progCounts[s.meta || 'MBA'] || 0) + 1; });
+
+        document.getElementById('ddEyebrow').textContent = `Student Footfall Drill-Down • ${periodLabel}`;
+        document.getElementById('ddTitle').textContent = `${stu.length} Student Check-Ins`;
+        document.getElementById('ddSubtitle').textContent = 'Breakdown by academic program and repeat visits';
+
+        statsCol.innerHTML = `
+          <div class="neo-inset p-3.5 rounded-2xl"><div class="text-[10px] font-extrabold uppercase text-slate-500">Unique Students</div><div class="text-2xl font-extrabold text-blue-900">${unique}</div></div>
+          <div class="neo-inset p-3.5 rounded-2xl"><div class="text-[10px] font-extrabold uppercase text-slate-500">Repeat Visits</div><div class="text-2xl font-extrabold text-emerald-700">${repeatCount}</div></div>
+          <div class="neo-inset p-3.5 rounded-2xl"><div class="text-[10px] font-extrabold uppercase text-slate-500">Master Penetration</div><div class="text-xl font-extrabold text-indigo-800">${allStudents.length ? Math.round((unique / allStudents.length) * 100) : 0}% of batch</div></div>
+        `;
+
+        drilldownChartInstance = new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: Object.keys(progCounts).length ? Object.keys(progCounts) : ['No Data'],
+            datasets: [{ data: Object.keys(progCounts).length ? Object.values(progCounts) : [1], backgroundColor: ['#1e3a8a', '#059669', '#d97706', '#4f46e5'] }]
+          },
+          options: { responsive: true, maintainAspectRatio: false }
+        });
+
+        thead.innerHTML = '<tr><th class="p-2.5">Enrol No</th><th class="p-2.5">Name</th><th class="p-2.5">Program</th><th class="p-2.5">Check-In</th><th class="p-2.5">Stay</th></tr>';
+        tbody.innerHTML = stu.length ? stu.map(r => `<tr><td class="p-2.5 font-mono font-bold">${r.identifier}</td><td class="p-2.5 font-bold">${r.name}</td><td class="p-2.5">${r.meta}</td><td class="p-2.5">${formatDateTime(r.checkIn)}</td><td class="p-2.5 font-extrabold">${r.status === 'CLOSED' ? formatMins(r.durationMins) : 'Inside'}</td></tr>`).join('')
+          : '<tr><td colspan="5" class="p-5 text-center text-slate-400">No student visits in this period.</td></tr>';
+
+      } else if (category === 'FACULTY') {
+        const fac = filtered.filter(x => x.visitorType === 'FACULTY');
+        const byProf = {};
+        fac.forEach(f => { byProf[f.name] = (byProf[f.name] || 0) + 1; });
+        const sortedProfs = Object.entries(byProf).sort((a, b) => b[1] - a[1]).slice(0, 6);
+
+        document.getElementById('ddEyebrow').textContent = `Faculty Utilization Drill-Down • ${periodLabel}`;
+        document.getElementById('ddTitle').textContent = `${fac.length} Faculty Check-Ins`;
+        document.getElementById('ddSubtitle').textContent = 'Top visiting faculty members and session logs';
+
+        const closedFac = fac.filter(x => x.status === 'CLOSED' && typeof x.durationMins === 'number');
+        const avgFacStay = closedFac.length ? Math.round(closedFac.reduce((a, b) => a + b.durationMins, 0) / closedFac.length) : 0;
+
+        statsCol.innerHTML = `
+          <div class="neo-inset p-3.5 rounded-2xl"><div class="text-[10px] font-extrabold uppercase text-slate-500">Unique Faculty</div><div class="text-2xl font-extrabold text-indigo-800">${Object.keys(byProf).length}</div></div>
+          <div class="neo-inset p-3.5 rounded-2xl"><div class="text-[10px] font-extrabold uppercase text-slate-500">Avg. Faculty Stay</div><div class="text-2xl font-extrabold text-slate-900">${formatMins(avgFacStay)}</div></div>
+          <div class="neo-inset p-3.5 rounded-2xl"><div class="text-[10px] font-extrabold uppercase text-slate-500">Master Directory</div><div class="text-xl font-extrabold text-emerald-700">${allFaculty.length} Registered</div></div>
+        `;
+
+        drilldownChartInstance = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: sortedProfs.map(x => x[0]),
+            datasets: [{ label: 'Visits', data: sortedProfs.map(x => x[1]), backgroundColor: '#4338ca', borderRadius: 6 }]
+          },
+          options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { precision: 0 } } } }
+        });
+
+        thead.innerHTML = '<tr><th class="p-2.5">Faculty Name</th><th class="p-2.5">Check-In</th><th class="p-2.5">Check-Out</th><th class="p-2.5">Duration</th></tr>';
+        tbody.innerHTML = fac.length ? fac.map(r => `<tr><td class="p-2.5 font-bold">${r.name}</td><td class="p-2.5">${formatDateTime(r.checkIn)}</td><td class="p-2.5">${formatDateTime(r.checkOut)}</td><td class="p-2.5 font-extrabold">${r.status === 'CLOSED' ? formatMins(r.durationMins) : 'Inside'}</td></tr>`).join('')
+          : '<tr><td colspan="4" class="p-5 text-center text-slate-400">No faculty visits in this period.</td></tr>';
+
+      } else if (category === 'GENERAL') {
+        const gen = filtered.filter(x => x.visitorType === 'GENERAL');
+        const byLocality = {};
+        gen.forEach(g => {
+          const loc = (g.meta || 'Other').trim();
+          byLocality[loc] = (byLocality[loc] || 0) + 1;
+        });
+
+        document.getElementById('ddEyebrow').textContent = `External Visitors Drill-Down • ${periodLabel}`;
+        document.getElementById('ddTitle').textContent = `${gen.length} General / Guest Visitors`;
+        document.getElementById('ddSubtitle').textContent = 'Breakdown by visitor residence / locality';
+
+        statsCol.innerHTML = `
+          <div class="neo-inset p-3.5 rounded-2xl"><div class="text-[10px] font-extrabold uppercase text-slate-500">Total Guests</div><div class="text-2xl font-extrabold text-amber-600">${gen.length}</div></div>
+          <div class="neo-inset p-3.5 rounded-2xl"><div class="text-[10px] font-extrabold uppercase text-slate-500">Distinct Localities</div><div class="text-2xl font-extrabold text-blue-900">${Object.keys(byLocality).length}</div></div>
+          <div class="neo-inset p-3.5 rounded-2xl"><div class="text-[10px] font-extrabold uppercase text-slate-500">Currently Inside</div><div class="text-xl font-extrabold text-emerald-700">${gen.filter(x => x.status === 'OPEN').length}</div></div>
+        `;
+
+        drilldownChartInstance = new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: Object.keys(byLocality).length ? Object.keys(byLocality) : ['No Guests'],
+            datasets: [{ data: Object.keys(byLocality).length ? Object.values(byLocality) : [1], backgroundColor: ['#d97706', '#1e3a8a', '#059669', '#e11d48', '#4f46e5'] }]
+          },
+          options: { responsive: true, maintainAspectRatio: false }
+        });
+
+        thead.innerHTML = '<tr><th class="p-2.5">Visitor Name</th><th class="p-2.5">Phone</th><th class="p-2.5">Locality</th><th class="p-2.5">Check-In</th><th class="p-2.5">Status</th></tr>';
+        tbody.innerHTML = gen.length ? gen.map(r => `<tr><td class="p-2.5 font-bold">${r.name}</td><td class="p-2.5 font-mono">${r.identifier}</td><td class="p-2.5">${r.meta}</td><td class="p-2.5">${formatDateTime(r.checkIn)}</td><td class="p-2.5 font-bold">${r.status}</td></tr>`).join('')
+          : '<tr><td colspan="5" class="p-5 text-center text-slate-400">No general visitors in this period.</td></tr>';
+
+      } else if (category === 'INSIDE') {
+        const inside = allLogs.filter(x => x.status === 'OPEN');
+        const sCnt = inside.filter(x => x.visitorType === 'STUDENT').length;
+        const fCnt = inside.filter(x => x.visitorType === 'FACULTY').length;
+        const gCnt = inside.filter(x => x.visitorType === 'GENERAL').length;
+
+        document.getElementById('ddEyebrow').textContent = 'Real-Time Live Occupancy';
+        document.getElementById('ddTitle').textContent = `${inside.length} Reader(s) Currently Inside`;
+        document.getElementById('ddSubtitle').textContent = 'Live active sessions with direct Admin force-checkout controls';
+
+        statsCol.innerHTML = `
+          <div class="neo-inset p-3.5 rounded-2xl"><div class="text-[10px] font-extrabold uppercase text-slate-500">Students Inside</div><div class="text-2xl font-extrabold text-blue-900">${sCnt}</div></div>
+          <div class="neo-inset p-3.5 rounded-2xl"><div class="text-[10px] font-extrabold uppercase text-slate-500">Faculty Inside</div><div class="text-2xl font-extrabold text-indigo-700">${fCnt}</div></div>
+          <div class="neo-inset p-3.5 rounded-2xl"><div class="text-[10px] font-extrabold uppercase text-slate-500">Guests Inside</div><div class="text-2xl font-extrabold text-amber-600">${gCnt}</div></div>
+        `;
+
+        drilldownChartInstance = new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: ['Students', 'Faculty', 'General Visitors'],
+            datasets: [{ data: inside.length ? [sCnt, fCnt, gCnt] : [1, 0, 0], backgroundColor: ['#1e3a8a', '#4338ca', '#d97706'] }]
+          },
+          options: { responsive: true, maintainAspectRatio: false }
+        });
+
+        thead.innerHTML = '<tr><th class="p-2.5">Type</th><th class="p-2.5">ID</th><th class="p-2.5">Name</th><th class="p-2.5">Entered At</th><th class="p-2.5">Elapsed</th><th class="p-2.5 text-right">Action</th></tr>';
+        tbody.innerHTML = inside.length ? inside.map(r => {
+          const elapsed = Math.max(0, Math.round((Date.now() - new Date(r.checkIn)) / 60000));
+          return `<tr>
+            <td class="p-2.5 font-extrabold">${r.visitorType}</td>
+            <td class="p-2.5 font-mono">${r.identifier}</td>
+            <td class="p-2.5 font-bold">${r.name}</td>
+            <td class="p-2.5">${formatDateTime(r.checkIn)}</td>
+            <td class="p-2.5 font-extrabold text-emerald-700">${formatMins(elapsed)}</td>
+            <td class="p-2.5 text-right"><button onclick="forceCloseTicket('${r.id}')" class="neo-cta-rose px-2.5 py-1 rounded-lg text-[11px] font-extrabold">Force Close</button></td>
+          </tr>`;
+        }).join('') : '<tr><td colspan="6" class="p-5 text-center text-slate-400">Library is currently empty.</td></tr>';
+
+      } else if (category === 'AVG_STAY') {
+        const closedStu = filtered.filter(x => x.visitorType === 'STUDENT' && x.status === 'CLOSED' && typeof x.durationMins === 'number');
+        const buckets = { '< 30m': 0, '30m - 1h': 0, '1h - 2h': 0, '2h - 4h': 0, '4h+': 0 };
+        closedStu.forEach(s => {
+          const m = s.durationMins;
+          if (m < 30) buckets['< 30m']++;
+          else if (m < 60) buckets['30m - 1h']++;
+          else if (m < 120) buckets['1h - 2h']++;
+          else if (m < 240) buckets['2h - 4h']++;
+          else buckets['4h+']++;
+        });
+        const totalMins = closedStu.reduce((a, b) => a + b.durationMins, 0);
+        const avg = closedStu.length ? Math.round(totalMins / closedStu.length) : 0;
+        const maxStay = closedStu.length ? Math.max(...closedStu.map(x => x.durationMins)) : 0;
+
+        document.getElementById('ddEyebrow').textContent = `Session Duration Drill-Down • ${periodLabel}`;
+        document.getElementById('ddTitle').textContent = `Avg. Student Stay: ${formatMins(avg)}`;
+        document.getElementById('ddSubtitle').textContent = 'Distribution of completed reading session lengths';
+
+        statsCol.innerHTML = `
+          <div class="neo-inset p-3.5 rounded-2xl"><div class="text-[10px] font-extrabold uppercase text-slate-500">Completed Sessions</div><div class="text-2xl font-extrabold text-blue-900">${closedStu.length}</div></div>
+          <div class="neo-inset p-3.5 rounded-2xl"><div class="text-[10px] font-extrabold uppercase text-slate-500">Total Reading Time</div><div class="text-2xl font-extrabold text-emerald-700">${formatMins(totalMins)}</div></div>
+          <div class="neo-inset p-3.5 rounded-2xl"><div class="text-[10px] font-extrabold uppercase text-slate-500">Longest Single Stay</div><div class="text-2xl font-extrabold text-indigo-800">${formatMins(maxStay)}</div></div>
+        `;
+
+        drilldownChartInstance = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: Object.keys(buckets),
+            datasets: [{ label: 'Sessions', data: Object.values(buckets), backgroundColor: '#059669', borderRadius: 8 }]
+          },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+        });
+
+        const sortedSessions = [...closedStu].sort((a, b) => b.durationMins - a.durationMins);
+        thead.innerHTML = '<tr><th class="p-2.5">Enrol No</th><th class="p-2.5">Student Name</th><th class="p-2.5">Program</th><th class="p-2.5">Check-In</th><th class="p-2.5">Stay Length</th></tr>';
+        tbody.innerHTML = sortedSessions.length ? sortedSessions.map(r => `<tr><td class="p-2.5 font-mono font-bold">${r.identifier}</td><td class="p-2.5 font-bold">${r.name}</td><td class="p-2.5">${r.meta}</td><td class="p-2.5">${formatDateTime(r.checkIn)}</td><td class="p-2.5 font-extrabold text-emerald-700">${formatMins(r.durationMins)}</td></tr>`).join('')
+          : '<tr><td colspan="5" class="p-5 text-center text-slate-400">No completed student sessions in this period.</td></tr>';
+      }
+
+      modal.classList.remove('hidden');
+    };
+
+    // ==================== MANUAL TICKET OVERRIDE & REGISTER TABLE ====================
     function renderRegisterTable(logs) {
       const cat = document.getElementById('logTypeFilter').value;
       let rows = logs;
       if (cat === 'EDITED_ONLY') {
-        rows = logs.filter(x => x.checkInEdited || x.checkOutEdited);
+        rows = logs.filter(x => x.checkInEdited || x.checkOutEdited || x.adminEdited);
       } else if (cat !== 'ALL') {
         rows = logs.filter(x => x.visitorType === cat);
       }
@@ -1183,15 +1614,17 @@
 
       const tbody = document.getElementById('registerTableBody');
       if (!rows.length) {
-        tbody.innerHTML = '<tr><td colspan="8" class="p-6 text-center text-slate-400">No entries found for this filter.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="p-6 text-center text-slate-400">No entries found for this filter.</td></tr>';
         return;
       }
       tbody.innerHTML = rows.slice(0, 250).map(r => {
         const inFlag = r.checkInEdited ? '<span class="ml-1 px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-extrabold" title="Check-in timestamp was manually edited">🕒 Edited</span>' : '';
         const outFlag = r.checkOutEdited ? '<span class="ml-1 px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-extrabold" title="Check-out timestamp was manually edited">🕒 Edited</span>' : '';
         const autoFlag = r.autoClosed ? '<span class="ml-1 px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-800 text-[10px] font-extrabold">Auto-Closed</span>' : '';
+        const adminFlag = r.adminEdited ? '<span class="ml-1 px-1.5 py-0.5 rounded bg-blue-100 text-blue-900 text-[10px] font-extrabold">Admin Override</span>' : '';
+
         return `
-        <tr class="hover:bg-white/50">
+        <tr class="hover:bg-white/60">
           <td class="p-3 font-extrabold">${r.visitorType}</td>
           <td class="p-3 font-mono">${r.identifier || '-'}</td>
           <td class="p-3 font-bold text-slate-900">${r.name}</td>
@@ -1202,11 +1635,117 @@
           <td class="p-3">
             <span class="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold ${
               r.status === 'OPEN' ? 'bg-emerald-600 text-white' : 'bg-slate-300 text-slate-800'
-            }">${r.status}</span>${autoFlag}
+            }">${r.status}</span>${autoFlag}${adminFlag}
+          </td>
+          <td class="p-3 text-right whitespace-nowrap space-x-1.5">
+            <button onclick="openEditTicketModal('${r.id}')" class="neo-btn px-2.5 py-1 rounded-lg text-blue-900 font-extrabold text-[11px]">Edit</button>
+            ${r.status === 'OPEN' ? `<button onclick="forceCloseTicket('${r.id}')" class="px-2.5 py-1 rounded-lg bg-amber-500 text-white font-extrabold text-[11px]">Close</button>` : ''}
+            <button onclick="deleteTicketEntry('${r.id}')" class="neo-btn px-2.5 py-1 rounded-lg text-rose-700 font-extrabold text-[11px]">Del</button>
           </td>
         </tr>`;
       }).join('');
     }
+
+    window.openEditTicketModal = function(docId) {
+      const ticket = allLogs.find(x => x.id === docId);
+      if (!ticket) return;
+      document.getElementById('editTicketId').value = ticket.id;
+      document.getElementById('editTicketType').value = ticket.visitorType || 'STUDENT';
+      document.getElementById('editTicketStatus').value = ticket.status || 'OPEN';
+      document.getElementById('editTicketIdentifier').value = ticket.identifier || '';
+      document.getElementById('editTicketName').value = ticket.name || '';
+      document.getElementById('editTicketMeta').value = ticket.meta || '';
+      document.getElementById('editTicketCheckIn').value = ticket.checkIn ? toLocalDatetimeValue(new Date(ticket.checkIn)) : '';
+      document.getElementById('editTicketCheckOut').value = ticket.checkOut ? toLocalDatetimeValue(new Date(ticket.checkOut)) : '';
+      document.getElementById('editTicketModal').classList.remove('hidden');
+    };
+
+    window.closeEditTicketModal = function() {
+      document.getElementById('editTicketModal').classList.add('hidden');
+    };
+
+    // Auto-fill student details inside Admin Edit Modal if enrollment number is corrected
+    document.getElementById('editTicketIdentifier').addEventListener('input', (e) => {
+      if (document.getElementById('editTicketType').value !== 'STUDENT') return;
+      const code = e.target.value.trim().toUpperCase();
+      const stu = allStudents.find(s => s.enrolno === code);
+      if (stu) {
+        document.getElementById('editTicketName').value = stu.name;
+        document.getElementById('editTicketMeta').value = stu.program;
+        document.getElementById('editTicketLookupNote').textContent = `✓ Matched Master Record: ${stu.name} (${stu.program})`;
+      }
+    });
+
+    document.getElementById('editTicketForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('editTicketId').value;
+      const visitorType = document.getElementById('editTicketType').value;
+      const status = document.getElementById('editTicketStatus').value;
+      const identifier = document.getElementById('editTicketIdentifier').value.trim().toUpperCase();
+      const name = document.getElementById('editTicketName').value.trim();
+      const meta = document.getElementById('editTicketMeta').value.trim();
+      const inVal = document.getElementById('editTicketCheckIn').value;
+      const outVal = document.getElementById('editTicketCheckOut').value;
+
+      const checkInIso = new Date(inVal).toISOString();
+      let checkOutIso = null;
+      let durationMins = null;
+
+      if (status === 'CLOSED') {
+        checkOutIso = outVal ? new Date(outVal).toISOString() : new Date().toISOString();
+        durationMins = Math.max(0, Math.round((new Date(checkOutIso) - new Date(checkInIso)) / 60000));
+      }
+
+      const batchMatch = identifier.match(/^(\d{2})/);
+      const batch = visitorType === 'STUDENT' ? (batchMatch ? `20${batchMatch[1]}` : 'Other') : (visitorType === 'FACULTY' ? 'Faculty' : 'General');
+
+      try {
+        await updateDoc(doc(db, 'visit_logs', id), {
+          visitorType,
+          identifier,
+          name,
+          meta,
+          batch,
+          checkIn: checkInIso,
+          checkOut: checkOutIso,
+          durationMins,
+          status,
+          adminEdited: true
+        });
+        closeEditTicketModal();
+        showToast('Ticket entry updated & saved!');
+      } catch (err) {
+        showToast('Failed to update ticket: ' + err.message, 'error');
+      }
+    });
+
+    window.forceCloseTicket = async function(docId) {
+      const ticket = allLogs.find(x => x.id === docId);
+      if (!ticket) return;
+      const checkOutIso = new Date().toISOString();
+      const durationMins = Math.max(0, Math.round((new Date(checkOutIso) - new Date(ticket.checkIn)) / 60000));
+      try {
+        await updateDoc(doc(db, 'visit_logs', docId), {
+          checkOut: checkOutIso,
+          durationMins,
+          status: 'CLOSED',
+          adminEdited: true
+        });
+        showToast(`Closed ticket for ${ticket.name} (${formatMins(durationMins)})`);
+      } catch (err) {
+        showToast('Error closing ticket: ' + err.message, 'error');
+      }
+    };
+
+    window.deleteTicketEntry = async function(docId) {
+      if (!confirm('Permanently delete this entry from the attendance register?')) return;
+      try {
+        await deleteDoc(doc(db, 'visit_logs', docId));
+        showToast('Erroneous ticket deleted.');
+      } catch (err) {
+        showToast('Error deleting ticket: ' + err.message, 'error');
+      }
+    };
 
     window.exportLogsCSV = function() {
       const rows = window._currentExportRows || [];
@@ -1224,6 +1763,7 @@
         Check_In_Manually_Edited: r.checkInEdited ? 'YES' : 'NO',
         Check_Out: r.checkOut ? new Date(r.checkOut).toLocaleString('en-IN') : 'STILL INSIDE',
         Check_Out_Manually_Edited: r.checkOutEdited ? 'YES' : 'NO',
+        Admin_Override: r.adminEdited ? 'YES' : 'NO',
         Auto_Closed: r.autoClosed ? 'YES' : 'NO',
         Duration_Minutes: r.durationMins ?? '',
         Status: r.status
@@ -1467,8 +2007,9 @@
       const announcement = document.getElementById('settingAnnouncement').value.trim();
       const requestsEnabled = document.getElementById('settingRequestsEnabled').checked;
       const closingHour = document.getElementById('settingClosingHour').value || '20:30';
-      await setDoc(doc(db, 'settings', 'config'), { announcement, requestsEnabled, closingHour }, { merge: true });
-      showToast('Settings saved & synced live!');
+      const milestoneSeconds = Math.max(2, Math.min(60, parseInt(document.getElementById('settingMilestoneSeconds').value || '5', 10)));
+      await setDoc(doc(db, 'settings', 'config'), { announcement, requestsEnabled, closingHour, milestoneSeconds }, { merge: true });
+      showToast('Settings saved & synced live to Front Desk!');
     };
 
     window.updateAdminPin = async function() {
@@ -1520,6 +2061,7 @@
         Check_In_Edited: r.checkInEdited ? 'YES' : 'NO',
         Check_Out: r.checkOut ? new Date(r.checkOut).toLocaleString('en-IN') : 'OPEN',
         Check_Out_Edited: r.checkOutEdited ? 'YES' : 'NO',
+        Admin_Override: r.adminEdited ? 'YES' : 'NO',
         Auto_Closed: r.autoClosed ? 'YES' : 'NO',
         Duration_Minutes: r.durationMins ?? '',
         Status: r.status
